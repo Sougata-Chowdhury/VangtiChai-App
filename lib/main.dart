@@ -113,7 +113,6 @@ Widget _buildPortraitLayout() {
     return LayoutBuilder(
       builder: (context, constraints) {
         double screenWidth = constraints.maxWidth;
-        double screenHeight = constraints.maxHeight;
 
         // Use AppDimensions for consistent sizing
         double fontSize = AppDimensions.getTitleFontSize(screenWidth);
@@ -128,7 +127,7 @@ Widget _buildPortraitLayout() {
         }
 
         // If the height is very short, reduce button size further to fit
-        double availableHeight = screenHeight - (fontSize * 2) - (padding * 2);
+        // (height-based adjustments handled in _buildAmountDisplay)
 
         return Column(
           children: [
@@ -177,7 +176,6 @@ Widget _buildLandscapeLayout() {
     return LayoutBuilder(
       builder: (context, constraints) {
         double screenWidth = constraints.maxWidth;
-        double screenHeight = constraints.maxHeight;
         
         // Use AppDimensions for consistent sizing
         double fontSize = AppDimensions.getTitleFontSize(screenWidth);
