@@ -388,36 +388,6 @@ Widget _buildLandscapeLayout() {
     );
   }
 
-  Widget _buildKeypadRow(
-    List<String> buttons,
-    double buttonSize,
-    double spacing,
-  ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: buttons.asMap().entries.map((entry) {
-        String button = entry.value;
-        if (button.isEmpty) {
-          return SizedBox(width: buttonSize, height: buttonSize);
-        }
-
-        Widget buttonWidget = _buildButton(button, buttonSize);
-
-        if (entry.key < buttons.length - 1 &&
-            buttons[entry.key + 1].isNotEmpty) {
-          return Row(
-            children: [
-              buttonWidget,
-              SizedBox(width: spacing),
-            ],
-          );
-        }
-
-        return buttonWidget;
-      }).toList(),
-    );
-  }
-
   Widget _buildButton(String label, double size) {
     bool isClear = label == 'CLEAR';
 
