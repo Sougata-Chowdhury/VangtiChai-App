@@ -95,14 +95,16 @@ class _VangtiChaiHomePageState extends State<VangtiChaiHomePage> {
         backgroundColor: const Color(0xFF009688),
         foregroundColor: Colors.white,
       ),
-      body: OrientationBuilder(
-        builder: (context, orientation) {
-          if (orientation == Orientation.portrait) {
-            return _buildPortraitLayout();
-          } else {
-            return _buildLandscapeLayout();
-          }
-        },
+      body: SafeArea(
+        child: OrientationBuilder(
+          builder: (context, orientation) {
+            if (orientation == Orientation.portrait) {
+              return _buildPortraitLayout();
+            } else {
+              return _buildLandscapeLayout();
+            }
+          },
+        ),
       ),
     );
   }
@@ -112,22 +114,21 @@ Widget _buildPortraitLayout() {
       builder: (context, constraints) {
         double screenWidth = constraints.maxWidth;
         double screenHeight = constraints.maxHeight;
-        
+
         // Use AppDimensions for consistent sizing
         double fontSize = AppDimensions.getTitleFontSize(screenWidth);
         double minButtonSize = AppDimensions.getMinButtonSize(screenWidth);
         double spacing = AppDimensions.getSpacing(screenWidth);
         double padding = AppDimensions.getPadding(screenWidth);
-        
-        // Specific optimizations for target devices
-        if (AppDimensions.isPixelXL(screenWidth, screenHeight)) {
-          // Pixel XL specific adjustments
-          minButtonSize = math.max(minButtonSize, 48.0);
-        } else if (AppDimensions.isNexus10(screenWidth, screenHeight)) {
-          // Nexus 10 specific adjustments
-          minButtonSize = math.max(minButtonSize, 65.0);
-          fontSize = math.max(fontSize, 26.0);
+
+        // Tighten minimums on small screens so everything fits without scrolling
+        double effectiveMinButton = minButtonSize;
+        if (screenWidth < AppDimensions.tabletBreakpoint) {
+          effectiveMinButton = AppDimensions.minButtonSizePhoneSmall;
         }
+
+        // If the height is very short, reduce button size further to fit
+        double availableHeight = screenHeight - (fontSize * 2) - (padding * 2);
 
         return Column(
           children: [
@@ -138,16 +139,29 @@ Widget _buildPortraitLayout() {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Change table takes up 40% of width (2/5)
-                    Expanded(
+                    // Change table (flexible)
+                    Flexible(
                       flex: AppDimensions.portraitTableFlex,
-                      child: _buildChangeTable(screenWidth)
+                      child: _buildChangeTable(screenWidth),
                     ),
                     SizedBox(width: spacing),
-                    // Keypad takes up 60% of width (3/5)
-                    Expanded(
+                    // Keypad (flexible) — keypad will compute its button size based on available space
+                    Flexible(
                       flex: AppDimensions.portraitKeypadFlex,
-                      child: _buildKeypad(minButtonSize, spacing),
+                      child: LayoutBuilder(
+                        builder: (context, kConstraints) {
+                          double maxW = kConstraints.maxWidth;
+                          double maxH = kConstraints.maxHeight;
+                          // Compute button size so 3 columns x 4 rows fit
+                          double maxButtonWidth = (maxW - (spacing * 2)) / 3;
+                          double maxButtonHeight = (maxH - (spacing * 3)) / 4;
+                          double buttonSize = math.min(maxButtonWidth, maxButtonHeight);
+                          // clamp to effective min and global max
+                          buttonSize = math.max(buttonSize, effectiveMinButton);
+                          buttonSize = math.min(buttonSize, AppDimensions.maxButtonSize);
+                          return _buildKeypad(buttonSize, spacing);
+                        },
+                      ),
                     ),
                   ],
                 ),
@@ -171,18 +185,14 @@ Widget _buildLandscapeLayout() {
         double spacing = AppDimensions.getSpacing(screenWidth);
         double padding = AppDimensions.getPadding(screenWidth);
         double tableWidth = AppDimensions.getLandscapeTableWidth(screenWidth);
-        
-        // Specific optimizations for target devices in landscape
-        if (AppDimensions.isPixelXL(screenWidth, screenHeight)) {
-          // Pixel XL landscape (731x411dp) - tighter layout
-          tableWidth = 220.0;
-          minButtonSize = math.max(minButtonSize, 45.0);
-          spacing = AppDimensions.spacingSmall;
-        } else if (AppDimensions.isNexus10(screenWidth, screenHeight)) {
-          // Nexus 10 landscape (1280x800dp) - more spacious
-          tableWidth = 320.0;
-          minButtonSize = math.max(minButtonSize, 70.0);
-          fontSize = math.max(fontSize, 28.0);
+
+        // Constrain table width to a fraction of the screen so keypad has room
+        tableWidth = math.min(tableWidth, screenWidth * 0.45);
+
+        // Allow smaller button minimums on phones to fit in landscape
+        double effectiveMinButton = minButtonSize;
+        if (screenWidth < AppDimensions.tabletBreakpoint) {
+          effectiveMinButton = AppDimensions.minButtonSizePhoneSmall;
         }
 
         return Column(
@@ -199,8 +209,20 @@ Widget _buildLandscapeLayout() {
                       child: _buildChangeTable(screenWidth),
                     ),
                     SizedBox(width: spacing),
+                    // Keypad area: compute button size to fit available space
                     Expanded(
-                      child: _buildKeypad(minButtonSize, spacing),
+                      child: LayoutBuilder(
+                        builder: (context, kConstraints) {
+                          double maxW = kConstraints.maxWidth;
+                          double maxH = kConstraints.maxHeight;
+                          double maxButtonWidth = (maxW - (spacing * 2)) / 3;
+                          double maxButtonHeight = (maxH - (spacing * 3)) / 4;
+                          double buttonSize = math.min(maxButtonWidth, maxButtonHeight);
+                          buttonSize = math.max(buttonSize, effectiveMinButton);
+                          buttonSize = math.min(buttonSize, AppDimensions.maxButtonSize);
+                          return _buildKeypad(buttonSize, spacing);
+                        },
+                      ),
                     ),
                   ],
                 ),
@@ -213,9 +235,22 @@ Widget _buildLandscapeLayout() {
   }
 
   Widget _buildAmountDisplay(double fontSize) {
+    // Adjust display size based on available height so header doesn't consume too much space
+    final media = MediaQuery.of(context);
+    double height = media.size.height;
+    double effectiveFont = fontSize;
+    double verticalPadding = 12.0;
+    if (height < 420) {
+      effectiveFont = fontSize * 0.78;
+      verticalPadding = 8.0;
+    } else if (height < 600) {
+      effectiveFont = fontSize * 0.9;
+      verticalPadding = 10.0;
+    }
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.symmetric(vertical: verticalPadding, horizontal: 12.0),
       color: const Color(0xFF009688),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -224,7 +259,7 @@ Widget _buildLandscapeLayout() {
             'Taka: ',
             style: TextStyle(
               color: Colors.white,
-              fontSize: fontSize,
+              fontSize: effectiveFont,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -232,7 +267,7 @@ Widget _buildLandscapeLayout() {
             _currentAmount.isEmpty ? '' : _currentAmount,
             style: TextStyle(
               color: Colors.white,
-              fontSize: fontSize,
+              fontSize: effectiveFont,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -241,29 +276,40 @@ Widget _buildLandscapeLayout() {
     );
   }
 
-Widget _buildChangeTable(double screenWidth) {
+  Widget _buildChangeTable(double screenWidth) {
     double fontSize = AppDimensions.getTableFontSize(screenWidth);
-    double rowHeight = AppDimensions.getTableRowHeight(screenWidth);
-    double horizontalPadding = AppDimensions.isLargeTablet(screenWidth) ? 
-        AppDimensions.paddingLarge : AppDimensions.paddingMedium;
+    double defaultRowHeight = AppDimensions.getTableRowHeight(screenWidth);
+    double horizontalPadding = AppDimensions.isLargeTablet(screenWidth)
+        ? AppDimensions.paddingLarge
+        : AppDimensions.paddingMedium;
+
+    // Estimate usable height to compute row height so the table fits on screen
+    final media = MediaQuery.of(context);
+    double usableHeight = media.size.height * 0.45; // use a fraction of total height
+    double computedRowHeight = (usableHeight / _denominations.length).clamp(28.0, defaultRowHeight);
 
     return Container(
-decoration: BoxDecoration(
+      decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: _denominations.map((denomination) {
-          int count = _change[denomination] ?? 0;
+      // Use a scrollable list but with compact row heights calculated from screen size
+      child: ListView.separated(
+        padding: EdgeInsets.zero,
+        shrinkWrap: true,
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: _denominations.length,
+        separatorBuilder: (context, index) => Divider(
+          height: 0.5,
+          color: Colors.grey.shade300,
+        ),
+        itemBuilder: (context, index) {
+          final denomination = _denominations[index];
+          final count = _change[denomination] ?? 0;
           return Container(
-            height: rowHeight,
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Colors.grey.shade300, width: AppDimensions.borderWidth),
-              ),
-            ),
+            height: computedRowHeight,
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            alignment: Alignment.centerLeft,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -284,7 +330,7 @@ decoration: BoxDecoration(
               ],
             ),
           );
-        }).toList(),
+        },
       ),
     );
   }
@@ -313,20 +359,30 @@ decoration: BoxDecoration(
           buttonSize = AppDimensions.minButtonSizePhone;
         }
 
+        // Use a Wrap with fixed-size children so buttons keep their computed size
+        final keys = ['1','2','3','4','5','6','7','8','9','0','CLEAR',''];
         return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildKeypadRow(['1', '2', '3'], buttonSize, spacing),
-              SizedBox(height: spacing),
-              _buildKeypadRow(['4', '5', '6'], buttonSize, spacing),
-              SizedBox(height: spacing),
-              _buildKeypadRow(['7', '8', '9'], buttonSize, spacing),
-              SizedBox(height: spacing),
-              _buildKeypadRow(['0', 'CLEAR', ''], buttonSize, spacing),
-            ],
-          ),
+          child: LayoutBuilder(builder: (context, gridConstraints) {
+            double maxW = gridConstraints.maxWidth;
+            // compute total width needed for one row (3 buttons + 2 gaps)
+            double totalRowWidth = (buttonSize * 3) + (spacing * 2);
+            double horizontalPadding = 0.0;
+            if (maxW > totalRowWidth) {
+              horizontalPadding = (maxW - totalRowWidth) / 2;
+            }
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: spacing,
+                runSpacing: spacing,
+                children: keys.map((k) {
+                  if (k.isEmpty) return SizedBox(width: buttonSize, height: buttonSize);
+                  return SizedBox(width: buttonSize, height: buttonSize, child: _buildButton(k, buttonSize));
+                }).toList(),
+              ),
+            );
+          }),
         );
       },
     );

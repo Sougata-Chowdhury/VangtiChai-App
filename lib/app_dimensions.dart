@@ -22,6 +22,8 @@ class AppDimensions {
   
   // Button dimensions
   static const double minButtonSizePhone = 45.0;
+  // Allow a smaller min when space is tight (phones in landscape)
+  static const double minButtonSizePhoneSmall = 36.0;
   static const double minButtonSizeTablet = 55.0;
   static const double minButtonSizeLargeTablet = 70.0;
   
