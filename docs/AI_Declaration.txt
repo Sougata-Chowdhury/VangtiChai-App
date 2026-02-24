@@ -44,8 +44,8 @@ To learn key concepts and Generate relevent code snippets I used AI and it helpe
 ------------------------------------------------------------
 List specific files/sections where AI helped significantly:
 
-File: _________________ Section: _________________
-File: _________________ Section: _________________
+File: _main.dart________________ Section: _________UI portion________
+File: _________app dimension.dart________ Section: ________dimension calculation part_________
 File: _________________ Section: _________________
 
 ------------------------------------------------------------
@@ -57,7 +57,7 @@ I declare that:
 - I can explain and modify my work if asked
 - I take full responsibility for my submission
 
-Signature: _______________________
-Date: ___________________________
+Signature: ______Sougata_________________
+Date: ___________22/2/26________________
 
 ============================================================
