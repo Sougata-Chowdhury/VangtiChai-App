@@ -12,9 +12,9 @@ Date: 22/2/26
 ------------------------------------------------------------
 [ ] None
 [ ] ChatGPT
-[ ] GitHub Copilot
+[.] GitHub Copilot
 [ ] Google Gemini
-[.] Claude
+[] Claude
 [ ] Cursor
 [ ] Other: ________________
 
@@ -33,7 +33,7 @@ Date: 22/2/26
 3. DESCRIPTION OF AI USE
 ------------------------------------------------------------
 Briefly describe what you used AI for and how:
-To learn key concepts and Generate relevent code snippets I used claude AI and it helped me fix and complete my app efficiently.
+To learn key concepts and Generate relevent code snippets I used AI and it helped me fix and complete my app efficiently by learning important concepts as well as learning syntax of flutter.
 
 
 
